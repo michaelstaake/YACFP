@@ -29,6 +29,7 @@ function yacfp_activate() {
         submitted_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
         form_data longtext NOT NULL,
         referrer varchar(255) DEFAULT '' NOT NULL,
+        user_ip varchar(45) DEFAULT '' NOT NULL,
         PRIMARY KEY (id)
     ) $charset_collate;";
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
@@ -159,13 +160,14 @@ function yacfp_submissions_tab() {
     echo '<h2>' . __('Submissions', 'yacfp') . '</h2>';
     if ($submissions) {
         echo '<table class="wp-list-table widefat striped">';
-        echo '<thead><tr><th>' . __('ID', 'yacfp') . '</th><th>' . __('Date', 'yacfp') . '</th><th>' . __('Referrer', 'yacfp') . '</th><th>' . __('Data', 'yacfp') . '</th></tr></thead>';
+        echo '<thead><tr><th>' . __('ID', 'yacfp') . '</th><th>' . __('Date', 'yacfp') . '</th><th>' . __('Referrer', 'yacfp') . '</th><th>' . __('IP Address', 'yacfp') . '</th><th>' . __('Data', 'yacfp') . '</th></tr></thead>';
         echo '<tbody>';
         foreach ($submissions as $sub) {
             echo '<tr>';
             echo '<td>' . $sub->id . '</td>';
             echo '<td>' . $sub->submitted_at . '</td>';
             echo '<td>' . esc_html($sub->referrer) . '</td>';
+            echo '<td>' . esc_html($sub->user_ip) . '</td>';
             echo '<td><pre>' . esc_html(json_encode(json_decode($sub->form_data), JSON_PRETTY_PRINT)) . '</pre></td>';
             echo '</tr>';
         }
@@ -246,6 +248,8 @@ function yacfp_handle_submit() {
             ['type' => 'textarea', 'label' => 'Message', 'required' => true],
         ];
         $referer = isset($_POST['yacfp_referer']) ? esc_url_raw($_POST['yacfp_referer']) : home_url();
+        // Get user IP (Cloudflare or REMOTE_ADDR)
+        $user_ip = isset($_SERVER['HTTP_CF_CONNECTING_IP']) ? sanitize_text_field($_SERVER['HTTP_CF_CONNECTING_IP']) : sanitize_text_field($_SERVER['REMOTE_ADDR']);
         // Validate CAPTCHA for non-logged-in users
         $captcha_valid = true;
         if (!is_user_logged_in() && $settings['captcha_type'] !== 'disabled') {
@@ -287,12 +291,13 @@ function yacfp_handle_submit() {
                 $form_data[$field['label']] = sanitize_text_field($_POST[$name]);
             }
         }
-        // Save to DB with referrer
+        // Save to DB with referrer and user IP
         global $wpdb;
         $table_name = $wpdb->prefix . 'yacfp_submissions';
         $wpdb->insert($table_name, [
             'form_data' => json_encode($form_data),
-            'referrer' => $referer
+            'referrer' => $referer,
+            'user_ip' => $user_ip
         ]);
         // Prepare HTML email
         $subject = __('New Contact Form Submission', 'yacfp');
@@ -311,8 +316,6 @@ function yacfp_handle_submit() {
                     <h1 style="margin: 0; font-size: 24px;">New Contact Form Submission</h1>
                 </div>
                 <div style="padding: 20px; background-color: #fff; border: 1px solid #ddd;">
-                    <p style="margin: 0 0 10px;"><strong>Submitted from:</strong> <?php echo esc_html($referer); ?></p>
-                    <h2 style="font-size: 18px; margin: 0 0 15px;">Form Details</h2>
                     <table style="width: 100%; border-collapse: collapse;">
                         <?php foreach ($form_data as $label => $value): ?>
                             <tr>
@@ -320,10 +323,18 @@ function yacfp_handle_submit() {
                                 <td style="padding: 8px; border: 1px solid #ddd;"><?php echo esc_html($value); ?></td>
                             </tr>
                         <?php endforeach; ?>
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; width: 30%;">Submitted from:</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;"><?php echo esc_html($referer); ?></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; width: 30%;">User IP:</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;"><?php echo esc_html($user_ip); ?></td>
+                        </tr>
                     </table>
                 </div>
                 <div style="text-align: center; padding: 10px; color: #777; font-size: 12px;">
-                    <p style="margin: 0;">Sent by Yet Another Contact Form Plugin</p>
+                    <p style="margin: 0;">Sent by Yet Another Contact Form Plugin by Michael Staake</p>
                 </div>
             </div>
         </body>
