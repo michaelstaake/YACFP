@@ -33,16 +33,6 @@ function yacfp_activate() {
     ) $charset_collate;";
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);
-    // Set default fields
-    if (!get_option('yacfp_fields')) {
-        $default_fields = [
-            ['type' => 'text', 'label' => 'Name', 'required' => true, 'mandatory' => true],
-            ['type' => 'email', 'label' => 'Email', 'required' => true, 'mandatory' => true],
-            ['type' => 'text', 'label' => 'Subject', 'required' => true, 'mandatory' => true],
-            ['type' => 'textarea', 'label' => 'Message', 'required' => true, 'mandatory' => true],
-        ];
-        update_option('yacfp_fields', $default_fields);
-    }
     // Set default settings
     if (!get_option('yacfp_settings')) {
         $default_settings = [
@@ -68,9 +58,6 @@ function yacfp_admin_menu() {
 add_action('admin_menu', 'yacfp_admin_menu');
 // Enqueue admin scripts
 function yacfp_admin_enqueue($hook) {
-    if (isset($_GET['page']) && $_GET['page'] === 'yacfp') {
-        wp_enqueue_script('jquery-ui-sortable');
-    }
     // Enqueue block editor assets only in block editor
     if ($hook === 'post.php' || $hook === 'post-new.php' || $hook === 'site-editor.php' || $hook === 'widgets.php') {
         wp_enqueue_script(
@@ -99,117 +86,16 @@ function yacfp_admin_page() {
     echo '<div class="wrap">';
     echo '<h1>' . __('YACFP', 'yacfp') . '</h1>';
     if (!$tab) {
-        // echo '<p><a href="' . admin_url('options-general.php?page=yacfp&tab=form') . '" class="button button-primary button-hero">' . __('Form', 'yacfp') . '</a></p>';
         echo '<p><a href="' . admin_url('options-general.php?page=yacfp&tab=settings') . '" class="button button-primary button-hero">' . __('Settings', 'yacfp') . '</a></p>';
         echo '<p><a href="' . admin_url('options-general.php?page=yacfp&tab=submissions') . '" class="button button-primary button-hero">' . __('Submissions', 'yacfp') . '</a></p>';
     } else {
-        if ($tab === 'form') {
-            yacfp_form_tab();
-        } elseif ($tab === 'settings') {
+        if ($tab === 'settings') {
             yacfp_settings_tab();
         } elseif ($tab === 'submissions') {
             yacfp_submissions_tab();
         }
     }
     echo '</div>';
-}
-// Form tab
-function yacfp_form_tab() {
-    $fields = get_option('yacfp_fields', []);
-    if (isset($_POST['yacfp_save_fields'])) {
-        check_admin_referer('yacfp_form_nonce');
-        // Update order
-        if (isset($_POST['field_order'])) {
-            $order = explode(',', $_POST['field_order']);
-            $new_fields = [];
-            foreach ($order as $index) {
-                if (isset($fields[$index])) {
-                    $new_fields[] = $fields[$index];
-                }
-            }
-            $fields = $new_fields;
-        }
-        // Add new field
-        if (isset($_POST['add_field']) && !empty($_POST['field_type']) && !empty($_POST['field_label'])) {
-            $new_field = [
-                'type' => sanitize_text_field($_POST['field_type']),
-                'label' => sanitize_text_field($_POST['field_label']),
-                'required' => isset($_POST['field_required']),
-                'mandatory' => false,
-            ];
-            if (in_array($new_field['type'], ['radio', 'select'])) {
-                $options = sanitize_textarea_field($_POST['field_options']);
-                $new_field['options'] = explode("\n", trim($options));
-            }
-            $fields[] = $new_field;
-        }
-        // Delete field
-        if (isset($_POST['delete_field'])) {
-            $delete_index = intval($_POST['delete_field']);
-            if (!isset($fields[$delete_index]['mandatory']) || !$fields[$delete_index]['mandatory']) {
-                unset($fields[$delete_index]);
-                $fields = array_values($fields);
-            }
-        }
-        update_option('yacfp_fields', $fields);
-        echo '<div class="updated"><p>' . __('Fields updated.', 'yacfp') . '</p></div>';
-    }
-    ?>
-    <h2><?php _e('Form Fields', 'yacfp'); ?></h2>
-    <form method="post">
-        <?php wp_nonce_field('yacfp_form_nonce'); ?>
-        <ul id="yacfp-sortable" class="sortable">
-            <?php foreach ($fields as $index => $field): ?>
-                <li data-index="<?php echo $index; ?>">
-                    <?php echo esc_html($field['label']); ?> (<?php echo esc_html($field['type']); ?>)
-                    <?php if (!isset($field['mandatory']) || !$field['mandatory']): ?>
-                        <button type="submit" name="delete_field" value="<?php echo $index; ?>"><?php _e('Delete', 'yacfp'); ?></button>
-                    <?php endif; ?>
-                </li>
-            <?php endforeach; ?>
-        </ul>
-        <input type="hidden" id="field_order" name="field_order">
-        <p><input type="submit" name="yacfp_save_fields" value="<?php _e('Save Order', 'yacfp'); ?>" class="button-primary"></p>
-    </form>
-    <h3><?php _e('Add New Field', 'yacfp'); ?></h3>
-    <form method="post">
-        <?php wp_nonce_field('yacfp_form_nonce'); ?>
-        <p>
-            <label><?php _e('Type:', 'yacfp'); ?></label>
-            <select name="field_type">
-                <option value="text"><?php _e('Custom Textbox', 'yacfp'); ?></option>
-                <option value="radio"><?php _e('Custom Radio Button', 'yacfp'); ?></option>
-                <option value="select"><?php _e('Custom Dropdown', 'yacfp'); ?></option>
-            </select>
-        </p>
-        <p>
-            <label><?php _e('Label:', 'yacfp'); ?></label>
-            <input type="text" name="field_label">
-        </p>
-        <p>
-            <label><?php _e('Required:', 'yacfp'); ?></label>
-            <input type="checkbox" name="field_required" checked>
-        </p>
-        <p>
-            <label><?php _e('Options (for radio/select, one per line):', 'yacfp'); ?></label><br>
-            <textarea name="field_options"></textarea>
-        </p>
-        <p><input type="submit" name="add_field" value="<?php _e('Add Field', 'yacfp'); ?>" class="button"></p>
-    </form>
-    <script>
-        jQuery(function($) {
-            $('#yacfp-sortable').sortable({
-                update: function(event, ui) {
-                    var order = [];
-                    $('#yacfp-sortable li').each(function() {
-                        order.push($(this).data('index'));
-                    });
-                    $('#field_order').val(order.join(','));
-                }
-            });
-        });
-    </script>
-    <?php
 }
 // Settings tab
 function yacfp_settings_tab() {
@@ -290,8 +176,13 @@ function yacfp_submissions_tab() {
 }
 // Shortcode for form
 function yacfp_shortcode() {
-    $fields = get_option('yacfp_fields', []);
     $settings = get_option('yacfp_settings', []);
+    $fields = [
+        ['type' => 'text', 'label' => 'Name', 'required' => true],
+        ['type' => 'email', 'label' => 'Email', 'required' => true],
+        ['type' => 'text', 'label' => 'Subject', 'required' => true],
+        ['type' => 'textarea', 'label' => 'Message', 'required' => true],
+    ];
     ob_start();
     // Enqueue theme
     wp_enqueue_style('yacfp-theme', YACFP_PLUGIN_URL . 'themes/' . $settings['theme']);
@@ -326,16 +217,6 @@ function yacfp_shortcode() {
                 <label for="<?php echo $name; ?>"><?php echo esc_html($field['label']); ?></label>
                 <?php if ($field['type'] === 'textarea'): ?>
                     <textarea id="<?php echo $name; ?>" name="<?php echo $name; ?>" <?php echo $required; ?>></textarea>
-                <?php elseif ($field['type'] === 'radio'): ?>
-                    <?php foreach ($field['options'] as $opt): ?>
-                        <input type="radio" name="<?php echo $name; ?>" value="<?php echo esc_attr($opt); ?>" <?php echo $required; ?>> <?php echo esc_html($opt); ?>
-                    <?php endforeach; ?>
-                <?php elseif ($field['type'] === 'select'): ?>
-                    <select id="<?php echo $name; ?>" name="<?php echo $name; ?>" <?php echo $required; ?>>
-                        <?php foreach ($field['options'] as $opt): ?>
-                            <option value="<?php echo esc_attr($opt); ?>"><?php echo esc_html($opt); ?></option>
-                        <?php endforeach; ?>
-                    </select>
                 <?php else: ?>
                     <input type="<?php echo $field['type']; ?>" id="<?php echo $name; ?>" name="<?php echo $name; ?>" <?php echo $required; ?>>
                 <?php endif; ?>
@@ -358,7 +239,12 @@ add_shortcode('yacfp', 'yacfp_shortcode');
 function yacfp_handle_submit() {
     if (isset($_POST['_wpnonce']) && wp_verify_nonce($_POST['_wpnonce'], 'yacfp_submit')) {
         $settings = get_option('yacfp_settings', []);
-        $fields = get_option('yacfp_fields', []);
+        $fields = [
+            ['type' => 'text', 'label' => 'Name', 'required' => true],
+            ['type' => 'email', 'label' => 'Email', 'required' => true],
+            ['type' => 'text', 'label' => 'Subject', 'required' => true],
+            ['type' => 'textarea', 'label' => 'Message', 'required' => true],
+        ];
         $referer = isset($_POST['yacfp_referer']) ? esc_url_raw($_POST['yacfp_referer']) : home_url();
         // Validate CAPTCHA for non-logged-in users
         $captcha_valid = true;
