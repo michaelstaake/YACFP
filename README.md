@@ -7,10 +7,10 @@
 YACFP is a lightweight WordPress plugin that allows you to easily add a contact form anywhere on your site using a shortcode or block. Form submissions are emailed to you and can be viewed in the WordPress Admin panel.
 
 ## Features
-- Insert contact forms using the `[yacfp]` shortcode or the YACFP Block.
+- Insert the contact form using the `[yacfp]` shortcode or the YACFP Block.
 - View and manage form submissions directly in the WordPress Admin panel.
 - Configure form settings via the plugin's settings page.
-- Lightweight and easy to use.
+- Super simple with a single form that you can insert anywhere on your site. If you need custom form fields and tons of options, this might not be the plugin for you.
 
 ## Installation
 1. Download the latest version of YACFP from [GitHub](https://github.com/michaelstaake/YACFP).
