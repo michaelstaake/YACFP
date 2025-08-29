@@ -83,18 +83,14 @@ function yacfp_register_block() {
 add_action('init', 'yacfp_register_block');
 // Admin page callback
 function yacfp_admin_page() {
-    $tab = isset($_GET['tab']) ? $_GET['tab'] : '';
+    $tab = isset($_GET['tab']) ? $_GET['tab'] : 'submissions';
     echo '<div class="wrap">';
     echo '<h1>' . __('YACFP', 'yacfp') . '</h1>';
-    if (!$tab) {
-        echo '<p><a href="' . admin_url('options-general.php?page=yacfp&tab=settings') . '" class="button button-primary button-hero">' . __('Settings', 'yacfp') . '</a></p>';
-        echo '<p><a href="' . admin_url('options-general.php?page=yacfp&tab=submissions') . '" class="button button-primary button-hero">' . __('Submissions', 'yacfp') . '</a></p>';
+    if ($tab === 'submissions') {
+        echo '<p><a href="' . admin_url('options-general.php?page=yacfp&tab=settings') . '" class="button button-primary">' . __('Settings', 'yacfp') . '</a></p>';
+        yacfp_submissions_tab();
     } else {
-        if ($tab === 'settings') {
-            yacfp_settings_tab();
-        } elseif ($tab === 'submissions') {
-            yacfp_submissions_tab();
-        }
+        yacfp_settings_tab();
     }
     echo '</div>';
 }
