@@ -2,9 +2,8 @@
 /**
  * Plugin Name: Yet Another Contact Form Plugin
  * Description: YACFP
- * Version: 2025.08.28.01
+ * Version: 2025.08.29.01
  * Author: Michael Staake
- * Author URI: https://michaelstaake.com
  * License: GPL-3.0
  * Text Domain: yacfp
  */
@@ -47,17 +46,18 @@ function yacfp_activate() {
 register_activation_hook(__FILE__, 'yacfp_activate');
 // Admin menu
 function yacfp_admin_menu() {
-    add_submenu_page(
-        'options-general.php',
-        __('YACFP', 'yacfp'),
-        __('YACFP', 'yacfp'),
-        'manage_options',
-        'yacfp',
-        'yacfp_admin_page'
+    add_menu_page(
+        __('Contact Form - YACFP', 'yacfp'),     // Page title
+        __('Contact Form - YACFP', 'yacfp'),     // Menu title
+        'manage_options',                         // Capability
+        'yacfp',                                 // Menu slug
+        'yacfp_admin_page',                      // Function
+        'dashicons-email-alt',                   // Icon
+        30                                       // Position
     );
 }
 add_action('admin_menu', 'yacfp_admin_menu');
-// Enqueue admin scripts
+// Enqueue admin scripts and styles
 function yacfp_admin_enqueue($hook) {
     // Enqueue block editor assets only in block editor
     if ($hook === 'post.php' || $hook === 'post-new.php' || $hook === 'site-editor.php' || $hook === 'widgets.php') {
@@ -69,6 +69,15 @@ function yacfp_admin_enqueue($hook) {
             true
         );
         wp_set_script_translations('yacfp-block', 'yacfp');
+    }
+    // Enqueue admin CSS for submissions tab
+    if ($hook === 'toplevel_page_yacfp') {
+        wp_enqueue_style(
+            'yacfp-admin',
+            YACFP_PLUGIN_URL . 'admin.css',
+            [],
+            filemtime(YACFP_PLUGIN_DIR . 'admin.css') ?: '2025.08.28.01'
+        );
     }
 }
 add_action('admin_enqueue_scripts', 'yacfp_admin_enqueue');
@@ -85,9 +94,15 @@ add_action('init', 'yacfp_register_block');
 function yacfp_admin_page() {
     $tab = isset($_GET['tab']) ? $_GET['tab'] : 'submissions';
     echo '<div class="wrap">';
-    echo '<h1>' . __('YACFP', 'yacfp') . '</h1>';
+    echo '<h1>' . __('YACFP - Yet Another Contact Form Plugin', 'yacfp') . '</h1>';
+    
+    // Tab navigation
+    echo '<nav class="nav-tab-wrapper">';
+    echo '<a href="' . admin_url('options-general.php?page=yacfp&tab=submissions') . '" class="nav-tab' . ($tab === 'submissions' ? ' nav-tab-active' : '') . '">' . __('Submissions', 'yacfp') . '</a>';
+    echo '<a href="' . admin_url('options-general.php?page=yacfp&tab=settings') . '" class="nav-tab' . ($tab === 'settings' ? ' nav-tab-active' : '') . '">' . __('Settings', 'yacfp') . '</a>';
+    echo '</nav>';
+    
     if ($tab === 'submissions') {
-        echo '<p><a href="' . admin_url('options-general.php?page=yacfp&tab=settings') . '" class="button button-primary">' . __('Settings', 'yacfp') . '</a></p>';
         yacfp_submissions_tab();
     } else {
         yacfp_settings_tab();
@@ -153,23 +168,67 @@ function yacfp_submissions_tab() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'yacfp_submissions';
     $submissions = $wpdb->get_results("SELECT * FROM $table_name ORDER BY submitted_at DESC");
-    echo '<h2>' . __('Submissions', 'yacfp') . '</h2>';
+    
+    // Get stats
+    $total_submissions = count($submissions);
+    $recent_submissions = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE submitted_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
+    $today_submissions = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE DATE(submitted_at) = CURDATE()");
+    
+    echo '<div class="yacfp-admin-header">';
+    
+    // Stats cards
+    echo '<div class="yacfp-stats">';
+    echo '<div class="yacfp-stat-card">';
+    echo '<div class="yacfp-stat-number">' . $total_submissions . '</div>';
+    echo '<div class="yacfp-stat-label">' . __('Total Submissions', 'yacfp') . '</div>';
+    echo '</div>';
+    echo '<div class="yacfp-stat-card">';
+    echo '<div class="yacfp-stat-number">' . $recent_submissions . '</div>';
+    echo '<div class="yacfp-stat-label">' . __('This Week', 'yacfp') . '</div>';
+    echo '</div>';
+    echo '<div class="yacfp-stat-card">';
+    echo '<div class="yacfp-stat-number">' . $today_submissions . '</div>';
+    echo '<div class="yacfp-stat-label">' . __('Today', 'yacfp') . '</div>';
+    echo '</div>';
+    echo '</div>';
+    echo '</div>';
+    
     if ($submissions) {
-        echo '<table class="wp-list-table widefat striped">';
-        echo '<thead><tr><th>' . __('ID', 'yacfp') . '</th><th>' . __('Date', 'yacfp') . '</th><th>' . __('Referrer', 'yacfp') . '</th><th>' . __('IP Address', 'yacfp') . '</th><th>' . __('Data', 'yacfp') . '</th></tr></thead>';
-        echo '<tbody>';
+        echo '<div class="yacfp-submissions">';
         foreach ($submissions as $sub) {
-            echo '<tr>';
-            echo '<td>' . $sub->id . '</td>';
-            echo '<td>' . $sub->submitted_at . '</td>';
-            echo '<td>' . esc_html($sub->referrer) . '</td>';
-            echo '<td>' . esc_html($sub->user_ip) . '</td>';
-            echo '<td><pre>' . esc_html(json_encode(json_decode($sub->form_data), JSON_PRETTY_PRINT)) . '</pre></td>';
-            echo '</tr>';
+            $form_data = json_decode($sub->form_data, true);
+            $submitted_date = new DateTime($sub->submitted_at);
+            
+            echo '<article class="yacfp-submission-card">';
+            echo '<header class="yacfp-submission-card__header">';
+            echo '<div class="yacfp-submission-card__meta">';
+            echo '<span><strong>' . __('Name:', 'yacfp') . '</strong> ' . esc_html($form_data['Name'] ?? __('Not provided', 'yacfp')) . '</span>';
+            echo '<span><strong>' . __('Email:', 'yacfp') . '</strong> ' . esc_html($form_data['Email'] ?? __('Not provided', 'yacfp')) . '</span>';
+            echo '<span><strong>' . __('When:', 'yacfp') . '</strong> ' . esc_html($submitted_date->format('M j, Y g:i A')) . '</span>';
+            echo '</div>';
+            echo '</header>';
+            
+            echo '<div class="yacfp-submission-card__content">';
+            if (!empty($form_data['Subject'])) {
+                echo '<h3>' . esc_html($form_data['Subject']) . '</h3>';
+            }
+            echo '<div class="message-content">';
+            echo wp_kses_post(wpautop($form_data['Message'] ?? __('No message provided.', 'yacfp')));
+            echo '</div>';
+            echo '</div>';
+            
+            echo '<footer class="yacfp-submission-card__footer">';
+            echo '<p><strong>' . __('User IP:', 'yacfp') . '</strong> ' . esc_html($sub->user_ip) . '</p>';
+            echo '<p><strong>' . __('Source Page:', 'yacfp') . '</strong> <a href="' . esc_url($sub->referrer) . '" target="_blank" rel="noopener">' . esc_html($sub->referrer) . '</a></p>';
+            echo '<p><strong>' . __('Submission ID:', 'yacfp') . '</strong>' . $sub->id . '</p>';
+            echo '</footer>';
+            echo '</article>';
         }
-        echo '</tbody></table>';
+        echo '</div>';
     } else {
-        echo '<p>' . __('No submissions yet.', 'yacfp') . '</p>';
+        echo '<div class="yacfp-no-submissions">';
+        echo '<p>' . __('No submissions received yet. Once visitors start using your contact form, their submissions will appear here.', 'yacfp') . '</p>';
+        echo '</div>';
     }
 }
 // Shortcode for form
