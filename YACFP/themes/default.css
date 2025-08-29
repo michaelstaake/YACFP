@@ -1,0 +1,50 @@
+.yacfp-form {
+    width: 100%;
+    padding: 20px;
+    border: 1px solid #ccc;
+    background: #f9f9f9;
+}
+
+.yacfp-form label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.yacfp-form input[type="text"],
+.yacfp-form input[type="email"],
+.yacfp-form textarea,
+.yacfp-form select {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+}
+
+.yacfp-form input[type="radio"] {
+    margin-right: 5px;
+}
+
+.yacfp-form input[type="submit"] {
+    background: #007cba;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+.yacfp-error {
+    color: #d63638;
+    background-color: #fef7f7;
+    border: 1px solid #ddbebe;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+.yacfp-success {
+    color: #008a00;
+    background-color: #f7fff7;
+    border: 1px solid #c6e1c6;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
