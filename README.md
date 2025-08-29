@@ -31,7 +31,7 @@ YACFP is a lightweight WordPress plugin that allows you to easily add a contact 
 ## Customization
 - To modify the form's appearance, avoid editing `default.css` in the plugin's `themes` folder to prevent changes from being overwritten during updates.
 - Instead, create a new file (e.g., `custom.css`) in the `themes` folder.
-- Go to **WordPress Admin > YACFP Settings** and select your custom CSS file to apply your styles.
+- Go to **WordPress Admin > Contact Form - YACFP** Settings tab and select your custom CSS file to apply your styles.
 
 ## Compatibility
 - Tested on WordPress 6.8.2 with PHP 8.3 on a cPanel server.
