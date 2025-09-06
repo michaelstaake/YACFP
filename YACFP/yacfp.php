@@ -1,9 +1,10 @@
 <?php
 /**
- * Plugin Name: Yet Another Contact Form Plugin
- * Description: YACFP
- * Version: 2025.08.29.01
+ * Plugin Name: YACFP
+ * Description: Yet Another Contact Form Plugin
+ * Version: 2025.09.05.01
  * Author: Michael Staake
+ * Author URI: https://michaelstaake.com
  * License: GPL-3.0
  * Text Domain: yacfp
  */
@@ -93,13 +94,18 @@ add_action('init', 'yacfp_register_block');
 // Admin page callback
 function yacfp_admin_page() {
     $tab = isset($_GET['tab']) ? $_GET['tab'] : 'submissions';
+    
+    // Set the browser title
+    global $title;
+    $title = __('Contact Form - YACFP', 'yacfp');
+    
     echo '<div class="wrap">';
     echo '<h1>' . __('YACFP - Yet Another Contact Form Plugin', 'yacfp') . '</h1>';
     
     // Tab navigation
     echo '<nav class="nav-tab-wrapper">';
-    echo '<a href="' . admin_url('options-general.php?page=yacfp&tab=submissions') . '" class="nav-tab' . ($tab === 'submissions' ? ' nav-tab-active' : '') . '">' . __('Submissions', 'yacfp') . '</a>';
-    echo '<a href="' . admin_url('options-general.php?page=yacfp&tab=settings') . '" class="nav-tab' . ($tab === 'settings' ? ' nav-tab-active' : '') . '">' . __('Settings', 'yacfp') . '</a>';
+    echo '<a href="' . admin_url('admin.php?page=yacfp&tab=submissions') . '" class="nav-tab' . ($tab === 'submissions' ? ' nav-tab-active' : '') . '">' . __('Submissions', 'yacfp') . '</a>';
+    echo '<a href="' . admin_url('admin.php?page=yacfp&tab=settings') . '" class="nav-tab' . ($tab === 'settings' ? ' nav-tab-active' : '') . '">' . __('Settings', 'yacfp') . '</a>';
     echo '</nav>';
     
     if ($tab === 'submissions') {

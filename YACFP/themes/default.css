@@ -19,6 +19,11 @@
     margin-bottom: 10px;
 }
 
+.yacfp-form textarea {
+    height: 160px;
+    resize: vertical;
+}
+
 .yacfp-form input[type="radio"] {
     margin-right: 5px;
 }
@@ -29,6 +34,10 @@
     border: none;
     padding: 10px 20px;
     cursor: pointer;
+}
+
+.yacfp-form input[type="submit"]:hover {
+    background: #005a87;
 }
 
 .yacfp-error {
